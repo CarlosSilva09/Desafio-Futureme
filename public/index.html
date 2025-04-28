@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gerenciador de Tarefas</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { color: #333; }
+    form { margin-bottom: 20px; }
+    input, textarea, select { display: block; margin-bottom: 10px; width: 300px; padding: 8px; }
+    button { padding: 8px 16px; }
+    ul { list-style: none; padding: 0; }
+    li { background: #f4f4f4; margin-bottom: 10px; padding: 10px; border-radius: 4px; }
+    .task-title { font-weight: bold; }
+    .task-status { font-style: italic; color: #666; }
+    .delete-btn { margin-left: 10px; color: red; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Gerenciador de Tarefas</h1>
+  <form id="taskForm">
+    <input type="text" id="title" placeholder="Título" required />
+    <textarea id="description" placeholder="Descrição" required></textarea>
+    <select id="status" required>
+      <option value="">Selecione o status</option>
+      <option value="pendente">Pendente</option>
+      <option value="em andamento">Em andamento</option>
+      <option value="concluída">Concluída</option>
+    </select>
+    <button type="submit">Criar Tarefa</button>
+  </form>
+  <ul id="taskList"></ul>
+
+  <script>
+    const taskForm = document.getElementById('taskForm');
+    const taskList = document.getElementById('taskList');
+
+    async function fetchTasks() {
+      const res = await fetch('/tasks');
+      const tasks = await res.json();
+      taskList.innerHTML = '';
+      tasks.forEach(task => {
+        const li = document.createElement('li');
+        li.innerHTML = \`
+          <span class="task-title">\${task.title}</span> -
+          <span class="task-status">\${task.status}</span>
+          <p>\${task.description}</p>
+          <button class="delete-btn" data-id="\${task.id}">Excluir</button>
+        \`;
+        taskList.appendChild(li);
+      });
+      document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-id');
+          await fetch('/tasks/' + id, { method: 'DELETE' });
+          fetchTasks();
+        });
+      });
+    }
+
+    taskForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const title = document.getElementById('title').value;
+      const description = document.getElementById('description').value;
+      const status = document.getElementById('status').value;
+      await fetch('/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, description, status })
+      });
+      taskForm.reset();
+      fetchTasks();
+    });
+
+    fetchTasks();
+  </script>
+</body>
+</html>

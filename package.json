@@ -1,0 +1,16 @@
+{
+  "name": "futureme-gerenciador-tarefas",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "start": "turbo run start"
+  },
+  "devDependencies": {
+    "turbo": "^1.10.12"
+  }
+}

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gerenciador de Tarefas</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; max-width: 600px; margin-left: auto; margin-right: auto; }
+    h1 { color: #333; text-align: center; }
+    form { margin-bottom: 20px; }
+    input, textarea, select { display: block; margin-bottom: 10px; width: 100%; padding: 8px; box-sizing: border-box; }
+    button { padding: 8px 16px; margin-right: 5px; }
+    ul { list-style: none; padding: 0; }
+    li { background: #f4f4f4; margin-bottom: 10px; padding: 10px; border-radius: 4px; }
+    .task-title { font-weight: bold; }
+    .task-status { font-style: italic; color: #666; }
+    .delete-btn { color: red; cursor: pointer; }
+    .edit-btn { color: blue; cursor: pointer; }
+    #editForm { display: none; margin-bottom: 20px; }
+    @media (max-width: 600px) {
+      body { margin: 10px; }
+      button { width: 100%; margin-bottom: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Gerenciador de Tarefas</h1>
+  <form id="taskForm">
+    <input type="text" id="title" placeholder="Título" required />
+    <textarea id="description" placeholder="Descrição" required></textarea>
+    <select id="status" required>
+      <option value="">Selecione o status</option>
+      <option value="pendente">Pendente</option>
+      <option value="em andamento">Em andamento</option>
+      <option value="concluída">Concluída</option>
+    </select>
+    <button type="submit">Criar Tarefa</button>
+  </form>
+
+  <form id="editForm">
+    <input type="hidden" id="editId" />
+    <input type="text" id="editTitle" placeholder="Título" required />
+    <textarea id="editDescription" placeholder="Descrição" required></textarea>
+    <select id="editStatus" required>
+      <option value="">Selecione o status</option>
+      <option value="pendente">Pendente</option>
+      <option value="em andamento">Em andamento</option>
+      <option value="concluída">Concluída</option>
+    </select>
+    <button type="submit">Salvar Alterações</button>
+    <button type="button" id="cancelEdit">Cancelar</button>
+  </form>
+
+  <ul id="taskList"></ul>
+
+  <script>
+    const taskForm = document.getElementById('taskForm');
+    const editForm = document.getElementById('editForm');
+    const taskList = document.getElementById('taskList');
+    const cancelEditBtn = document.getElementById('cancelEdit');
+
+    async function fetchTasks() {
+      const res = await fetch('/tasks');
+      const tasks = await res.json();
+      taskList.innerHTML = '';
+      tasks.forEach(task => {
+        const li = document.createElement('li');
+        li.innerHTML = '<span class="task-title">' + task.title + '</span> - ' +
+                       '<span class="task-status">' + task.status + '</span>' +
+                       '<p>' + task.description + '</p>' +
+                       '<button class="edit-btn" data-id="' + task.id + '">Editar</button>' +
+                       '<button class="delete-btn" data-id="' + task.id + '">Excluir</button>';
+        taskList.appendChild(li);
+      });
+      document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-id');
+          await fetch('/tasks/' + id, { method: 'DELETE' });
+          fetchTasks();
+        });
+      });
+      document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-id');
+          const res = await fetch('/tasks');
+          const tasks = await res.json();
+          const task = tasks.find(t => t.id == id);
+          if (task) {
+            editForm.style.display = 'block';
+            taskForm.style.display = 'none';
+            document.getElementById('editId').value = task.id;
+            document.getElementById('editTitle').value = task.title;
+            document.getElementById('editDescription').value = task.description;
+            document.getElementById('editStatus').value = task.status;
+          }
+        });
+      });
+    }
+
+    taskForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const title = document.getElementById('title').value;
+      const description = document.getElementById('description').value;
+      const status = document.getElementById('status').value;
+      await fetch('/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, description, status })
+      });
+      taskForm.reset();
+      fetchTasks();
+    });
+
+    editForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const id = document.getElementById('editId').value;
+      const title = document.getElementById('editTitle').value;
+      const description = document.getElementById('editDescription').value;
+      const status = document.getElementById('editStatus').value;
+      await fetch('/tasks/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, description, status })
+      });
+      editForm.style.display = 'none';
+      taskForm.style.display = 'block';
+      fetchTasks();
+    });
+
+    cancelEditBtn.addEventListener('click', () => {
+      editForm.style.display = 'none';
+      taskForm.style.display = 'block';
+    });
+
+    fetchTasks();
+  </script>
+</body>
+</html>
